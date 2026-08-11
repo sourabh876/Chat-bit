@@ -79,6 +79,12 @@ const Chat = ({ username, onLogout }) => {
     const typingTimeoutRef = useRef(null);
 
 
+
+    const notificationSound = useRef(
+        new Audio("/sounds/notification.mp3")
+    );
+
+
     // Scroll to latest message
     const scrollToBottom = () => {
 
@@ -150,6 +156,7 @@ const Chat = ({ username, onLogout }) => {
         };
 
 
+
         const handleDisconnect = (reason) => {
 
             console.log(
@@ -181,24 +188,34 @@ const Chat = ({ username, onLogout }) => {
 
         const handleNewMessage = (message) => {
 
-            // First add the received message to the chat
-            setMessages(
-                (previousMessages) => [
-                    ...previousMessages,
-                    {
-                        ...message,
-                        status: "delivered"
-                    }
-                ]
-            );
+            // Add received message to chat
+            setMessages((previousMessages) => [
+                ...previousMessages,
+                {
+                    ...message,
+                    status: "delivered"
+                }
+            ]);
 
-            // Tell the server that the message
-            // has been delivered to this client
+            // Play notification sound only when
+            // another user sends the message
+            if (message.username !== username) {
+
+                notificationSound.current.currentTime = 0;
+
+                notificationSound.current
+                    .play()
+                    .catch(() => {
+                        // Browser may block autoplay
+                    });
+            }
+
+            // Tell server that the message
+            // has been delivered
             socket.emit(
                 "message_delivered",
                 message._id
             );
-
         };
 
 
@@ -380,6 +397,8 @@ const Chat = ({ username, onLogout }) => {
             "user_stopped_typing",
             handleUserStoppedTyping
         );
+
+
 
 
         // Connect
@@ -698,7 +717,7 @@ const Chat = ({ username, onLogout }) => {
 
                                 <MessageBubble
                                     message={message}
-                                    currentUsername={username} 
+                                    currentUsername={username}
                                 />
 
                             </div>
